@@ -1,5 +1,5 @@
 function HomePage() {
-  return <h1>Clean</h1>;
+  return <h1>Clean up</h1>;
 }
 
 export default HomePage;
