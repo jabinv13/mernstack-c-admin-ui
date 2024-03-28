@@ -99,7 +99,12 @@ export const Dashboard = () => {
             }}
           >
             <Flex gap="middle" align="start" justify="space-between">
-              <Badge status="success" text="Global" />
+              <Badge
+                status="success"
+                text={
+                  user.role === "admin" ? "you are an admin" : user.tenant?.name
+                }
+              />
               <Space size={16}>
                 <Badge dot={true}>
                   <BellFilled />
