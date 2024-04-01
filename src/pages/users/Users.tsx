@@ -68,16 +68,6 @@ const Users = () => {
         {isError && <div>{error.message}</div>}
         <Table columns={columns} dataSource={users} />
       </Space>
-      {/* {users && (
-        <div>
-          <h1>Users</h1>
-          <ul>
-            {users.map((user: User) => (
-              <li key={user.id}>{user.firstName}</li>
-            ))}
-          </ul>
-        </div>
-      )} */}
     </>
   );
 };
