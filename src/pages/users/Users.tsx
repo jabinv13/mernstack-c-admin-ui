@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getUsers } from "../../http/api";
 import { User } from "../../types";
 import { useAuthStore } from "../../store";
+import UsersFilter from "./UsersFilter";
 
 const columns = [
   {
@@ -73,7 +74,12 @@ const Users = () => {
 
         {isLoading && <div>Loading ...</div>}
         {isError && <div>{error.message}</div>}
-        <Table columns={columns} dataSource={users} />
+        <UsersFilter
+          onFilterChange={(filterName: string, filterValue: string) => {
+            console.log(filterName, filterValue);
+          }}
+        />
+        <Table columns={columns} dataSource={users} rowKey={"id"} />
       </Space>
     </>
   );
