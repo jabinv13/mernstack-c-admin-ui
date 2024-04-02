@@ -1,4 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { Breadcrumb, Button, Drawer, Form, Space, Table } from "antd";
 import { createTenant, getTenants } from "../../http/api";
 import { useAuthStore } from "../../store";
@@ -6,9 +11,11 @@ import { Link, Navigate } from "react-router-dom";
 import { RightOutlined } from "@ant-design/icons";
 import TenantFilter from "./TenantsFilter";
 import { PlusOutlined } from "@ant-design/icons";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import TenantForm from "./form/TenantForm";
-import { CreateTenantData } from "../../types";
+import { CreateTenantData, FieldData } from "../../types";
+import { PER_PAGE } from "../../constants";
+import { debounce } from "lodash";
 
 const columns = [
   {
@@ -31,7 +38,12 @@ const columns = [
 const Tenants = () => {
   const { user } = useAuthStore();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [queryParams, setQueryParams] = useState({
+    perPage: PER_PAGE,
+    currentPage: 1,
+  });
   const [form] = Form.useForm();
+  const [filterForm] = Form.useForm();
   const queryClient = useQueryClient();
   const {
     data: tenants,
@@ -39,10 +51,19 @@ const Tenants = () => {
     isError,
     error,
   } = useQuery({
-    queryKey: ["tenants"],
+    queryKey: ["tenants", queryParams],
     queryFn: () => {
-      return getTenants().then((res) => res.data);
+      const filteredParams = Object.fromEntries(
+        Object.entries(queryParams).filter((item) => !!item[1])
+      );
+
+      const queryString = new URLSearchParams(
+        filteredParams as unknown as Record<string, string>
+      ).toString();
+
+      return getTenants(queryString).then((res) => res.data);
     },
+    placeholderData: keepPreviousData,
   });
 
   const { mutate: tenantMutate } = useMutation({
@@ -55,10 +76,6 @@ const Tenants = () => {
     },
   });
 
-  if (user?.role !== "admin") {
-    return <Navigate to="/" replace={true} />;
-  }
-
   const onHandleSubmit = async () => {
     await form.validateFields();
 
@@ -67,6 +84,34 @@ const Tenants = () => {
     form.resetFields();
     setDrawerOpen(false);
   };
+
+  const debouncedQUpdate = useMemo(() => {
+    return debounce((value: string | undefined) => {
+      setQueryParams((prev) => ({ ...prev, q: value, currentPage: 1 }));
+    }, 500);
+  }, []);
+
+  const onFilterChange = (changedFields: FieldData[]) => {
+    const changedFilterFields = changedFields
+      .map((item) => ({
+        [item.name[0]]: item.value,
+      }))
+      .reduce((acc, item) => ({ ...acc, ...item }), {});
+
+    if ("q" in changedFilterFields) {
+      debouncedQUpdate(changedFilterFields.q);
+    } else {
+      setQueryParams((prev) => ({
+        ...prev,
+        ...changedFilterFields,
+        currentPage: 1,
+      }));
+    }
+  };
+
+  if (user?.role !== "admin") {
+    return <Navigate to="/" replace={true} />;
+  }
 
   return (
     <>
@@ -80,16 +125,36 @@ const Tenants = () => {
         />
         {isFetching && <div>Loading ...</div>}
         {isError && <div>{error.message}</div>}
-        <TenantFilter>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => setDrawerOpen(true)}
-          >
-            Add Tenant
-          </Button>
-        </TenantFilter>
-        <Table columns={columns} dataSource={tenants} rowKey={"id"} />
+        <Form form={filterForm} onFieldsChange={onFilterChange}>
+          <TenantFilter>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => setDrawerOpen(true)}
+            >
+              Add Tenant
+            </Button>
+          </TenantFilter>
+        </Form>
+        <Table
+          columns={columns}
+          dataSource={tenants?.data}
+          rowKey={"id"}
+          pagination={{
+            total: tenants?.total,
+            pageSize: queryParams.perPage,
+            current: queryParams.currentPage,
+            onChange: (page) => {
+              console.log(page);
+              setQueryParams((prev) => {
+                return {
+                  ...prev,
+                  currentPage: page,
+                };
+              });
+            },
+          }}
+        />
         <Drawer
           title="Create Tenant"
           open={drawerOpen}
