@@ -23,9 +23,10 @@ import { createUser, getUsers } from "../../http/api";
 import { CreateUserData, FieldData, User } from "../../types";
 import { useAuthStore } from "../../store";
 import UsersFilter from "./UsersFilter";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import UserForm from "./forms/UserForm";
 import { PER_PAGE } from "../../constants";
+import { debounce } from "lodash";
 
 const columns = [
   {
@@ -107,10 +108,6 @@ const Users = () => {
     },
   });
 
-  if (user?.role !== "admin") {
-    return <Navigate to="/" replace={true} />;
-  }
-
   const onHandleSubmit = async () => {
     await form.validateFields();
 
@@ -119,6 +116,11 @@ const Users = () => {
     form.resetFields();
     setDrawerOpen(false);
   };
+  const debouncedQUpdate = useMemo(() => {
+    return debounce((value: string | undefined) => {
+      setQueryParams((prev) => ({ ...prev, q: value, currentPage: 1 }));
+    }, 500);
+  }, []);
 
   const onFilterChange = (changedFields: FieldData[]) => {
     const changedFilterFields = changedFields
@@ -126,12 +128,22 @@ const Users = () => {
         [item.name[0]]: item.value,
       }))
       .reduce((acc, item) => ({ ...acc, ...item }), {});
-    setQueryParams((prev) => ({
-      ...prev,
-      ...changedFilterFields,
-      currentPage: 1,
-    }));
+
+    //debounce
+    if ("q" in changedFilterFields) {
+      debouncedQUpdate(changedFilterFields.q);
+    } else {
+      setQueryParams((prev) => ({
+        ...prev,
+        ...changedFilterFields,
+        currentPage: 1,
+      }));
+    }
   };
+
+  if (user?.role !== "admin") {
+    return <Navigate to="/" replace={true} />;
+  }
   return (
     <>
       <Space direction="vertical" size={"large"} style={{ width: "100%" }}>
