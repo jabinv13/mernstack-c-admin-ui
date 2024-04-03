@@ -3,7 +3,11 @@ import { Card, Col, Form, Input, Row, Select, Space } from "antd";
 import { getTenants } from "../../../http/api";
 import { Tenant } from "../../../types";
 
+// import { useState } from "react";
+// import { DebounceSelect } from "../../../components/search/DebounceSelect";
+
 const UserForm = () => {
+  // const [value, setValue] = useState<Tenant[]>([]);
   const selectedRole = Form.useWatch("role");
 
   const { data: tenants } = useQuery({
@@ -13,6 +17,17 @@ const UserForm = () => {
       return getTenants(`perPage=100&currentPage=1`).then((res) => res.data);
     },
   });
+
+  // const { refetch } = useQuery({
+  //   queryKey: ["tenants"],
+  //   queryFn: () => {
+  //     // TODO: make this dynamic, like search for tenants in the input
+  //     return getTenants(`perPage=100&currentPage=1`).then(
+  //       (res) => res.data.data
+  //     );
+  //   },
+  //   enabled: false,
+  // });
   return (
     <Row>
       <Col>
@@ -136,6 +151,16 @@ const UserForm = () => {
                         </Select.Option>
                       ))}
                     </Select>
+                    {/* <DebounceSelect
+                      mode="multiple"
+                      value={value}
+                      placeholder="Select users"
+                      fetchOptions={refetch}
+                      onChange={(newValue) => {
+                        setValue(newValue as unknown as Tenant[]);
+                      }}
+                      style={{ width: "100%" }}
+                    /> */}
                   </Form.Item>
                 </Col>
               )}

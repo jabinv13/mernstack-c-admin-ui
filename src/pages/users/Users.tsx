@@ -192,6 +192,10 @@ const Users = () => {
                 };
               });
             },
+            showTotal: (total: number, range: number[]) => {
+              console.log(total, range);
+              return `Showing ${range[0]}-${range[1]} of ${total} items`;
+            },
           }}
         />
 
