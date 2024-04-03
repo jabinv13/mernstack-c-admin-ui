@@ -6,7 +6,7 @@ import { Tenant } from "../../../types";
 // import { useState } from "react";
 // import { DebounceSelect } from "../../../components/search/DebounceSelect";
 
-const UserForm = () => {
+const UserForm = ({ isEditMode = false }: { isEditMode: boolean }) => {
   // const [value, setValue] = useState<Tenant[]>([]);
   const selectedRole = Form.useWatch("role");
 
@@ -77,29 +77,31 @@ const UserForm = () => {
                     },
                   ]}
                 >
-                  <Input size="large" />
+                  <Input size="large" disabled={isEditMode ? true : false} />
                 </Form.Item>
               </Col>
             </Row>
           </Card>
-          <Card title="Security info" bordered={false}>
-            <Row gutter={20}>
-              <Col span={12}>
-                <Form.Item
-                  label="Passoword"
-                  name="password"
-                  rules={[
-                    {
-                      required: true,
-                      message: "Password required",
-                    },
-                  ]}
-                >
-                  <Input size="large" type="password" />
-                </Form.Item>
-              </Col>
-            </Row>
-          </Card>
+          {!isEditMode && (
+            <Card title="Security info" bordered={false}>
+              <Row gutter={20}>
+                <Col span={12}>
+                  <Form.Item
+                    label="Passoword"
+                    name="password"
+                    rules={[
+                      {
+                        required: true,
+                        message: "Password required",
+                      },
+                    ]}
+                  >
+                    <Input size="large" type="password" />
+                  </Form.Item>
+                </Col>
+              </Row>
+            </Card>
+          )}
           <Card title="Role" bordered={false}>
             <Row gutter={20}>
               <Col span={12}>

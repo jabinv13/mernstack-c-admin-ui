@@ -19,11 +19,11 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import { createUser, getUsers } from "../../http/api";
+import { createUser, getUsers, updateUser } from "../../http/api";
 import { CreateUserData, FieldData, User } from "../../types";
 import { useAuthStore } from "../../store";
 import UsersFilter from "./UsersFilter";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import UserForm from "./forms/UserForm";
 import { PER_PAGE } from "../../constants";
 import { debounce } from "lodash";
@@ -70,6 +70,9 @@ const Users = () => {
   const [form] = Form.useForm();
   const [filterForm] = Form.useForm();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [currentEditingUser, setCurrentEditingUser] = useState<User | null>(
+    null
+  );
   const { user } = useAuthStore();
   const [queryParams, setQueryParams] = useState({
     perPage: PER_PAGE,
@@ -78,7 +81,19 @@ const Users = () => {
   const {
     token: { colorBgLayout },
   } = theme.useToken();
+
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (currentEditingUser) {
+      setDrawerOpen(true);
+      form.setFieldsValue({
+        ...currentEditingUser,
+        tenantId: currentEditingUser.tenant?.id,
+      });
+    }
+  }, [currentEditingUser, form]);
+
   const {
     data: users,
     isFetching,
@@ -98,6 +113,8 @@ const Users = () => {
     },
     placeholderData: keepPreviousData,
   });
+
+  //create
   const { mutate: userMutate } = useMutation({
     mutationKey: ["user"],
     mutationFn: async (data: CreateUserData) =>
@@ -108,12 +125,28 @@ const Users = () => {
     },
   });
 
+  //update
+
+  const { mutate: updateUserMutation } = useMutation({
+    mutationKey: ["update-user"],
+    mutationFn: async (data: CreateUserData) =>
+      updateUser(data, currentEditingUser!.id).then((res) => res.data),
+    onSuccess: async () => {
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      return;
+    },
+  });
+
   const onHandleSubmit = async () => {
     await form.validateFields();
-
-    console.log(form.getFieldsValue());
-    await userMutate(form.getFieldsValue());
+    const isEditMode = !!currentEditingUser;
+    if (isEditMode) {
+      await updateUserMutation(form.getFieldsValue());
+    } else {
+      await userMutate(form.getFieldsValue());
+    }
     form.resetFields();
+    setCurrentEditingUser(null);
     setDrawerOpen(false);
   };
   const debouncedQUpdate = useMemo(() => {
@@ -177,7 +210,25 @@ const Users = () => {
           </UsersFilter>
         </Form>
         <Table
-          columns={columns}
+          columns={[
+            ...columns,
+            {
+              title: "Actions",
+              render: (_: string, record: User) => {
+                console.log(record);
+                return (
+                  <Space>
+                    <Button
+                      onClick={() => setCurrentEditingUser(record)}
+                      type="link"
+                    >
+                      Edit
+                    </Button>
+                  </Space>
+                );
+              },
+            },
+          ]}
           dataSource={users?.data}
           rowKey={"id"}
           pagination={{
@@ -200,12 +251,14 @@ const Users = () => {
         />
 
         <Drawer
-          title="Create User"
+          title={currentEditingUser ? "Edit User" : "Create User"}
           styles={{ body: { backgroundColor: colorBgLayout } }}
           open={drawerOpen}
           width={720}
           destroyOnClose={true}
           onClose={() => {
+            form.resetFields();
+            setCurrentEditingUser(null);
             setDrawerOpen(false);
             console.log("Closing user drawer");
           }}
@@ -224,7 +277,7 @@ const Users = () => {
           }
         >
           <Form layout="vertical" form={form}>
-            <UserForm />
+            <UserForm isEditMode={!!currentEditingUser} />
           </Form>
         </Drawer>
       </Space>
