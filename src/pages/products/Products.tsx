@@ -25,65 +25,68 @@ import { PER_PAGE } from "../../constants";
 import { getProducts } from "../../http/api";
 import { FieldData, Product } from "../../types";
 import { debounce } from "lodash";
+import { useAuthStore } from "../../store";
+
+const columns = [
+  {
+    title: "Product Name",
+    dataIndex: "name",
+    key: "name",
+    render: (_text: string, record: Product) => {
+      return (
+        <div>
+          <Space>
+            <Image width={40} src={record.image} preview={false} />
+            <Typography.Text>{record.name}</Typography.Text>
+          </Space>
+        </div>
+      );
+    },
+  },
+  {
+    title: "Description",
+    dataIndex: "description",
+    key: "description",
+  },
+  {
+    title: "Status",
+    dataIndex: "isPublish",
+    key: "isPublish",
+    render: (_: boolean, record: Product) => {
+      return (
+        <>
+          {record.isPublish ? (
+            <Tag color="green">Published</Tag>
+          ) : (
+            <Tag color="red">Draft</Tag>
+          )}
+        </>
+      );
+    },
+  },
+  {
+    title: "CreatedAt",
+    dataIndex: "createdAt",
+    key: "createdAt",
+    render: (text: string) => {
+      return (
+        <Typography.Text>
+          {format(new Date(text), "dd/MM/yyyy HH:mm")}
+        </Typography.Text>
+      );
+    },
+  },
+];
 
 const Products = () => {
   const [filterForm] = Form.useForm();
+  const { user } = useAuthStore();
 
   const [queryParams, setQueryParams] = useState({
     perPage: PER_PAGE,
     currentPage: 1,
+    tenantId: user!.role === "manager" ? user?.tenant?.id : undefined,
   });
-
-  const columns = [
-    {
-      title: "Product Name",
-      dataIndex: "name",
-      key: "name",
-      render: (_text: string, record: Product) => {
-        return (
-          <div>
-            <Space>
-              <Image width={40} src={record.image} preview={false} />
-              <Typography.Text>{record.name}</Typography.Text>
-            </Space>
-          </div>
-        );
-      },
-    },
-    {
-      title: "Description",
-      dataIndex: "description",
-      key: "description",
-    },
-    {
-      title: "Status",
-      dataIndex: "isPublish",
-      key: "isPublish",
-      render: (_: boolean, record: Product) => {
-        return (
-          <>
-            {record.isPublish ? (
-              <Tag color="green">Published</Tag>
-            ) : (
-              <Tag color="red">Draft</Tag>
-            )}
-          </>
-        );
-      },
-    },
-    {
-      title: "CreatedAt",
-      dataIndex: "createdAt",
-      key: "createdAt",
-      render: (text: string) => {
-        return (
-          <Typography.Text>
-            {format(new Date(text), "dd/MM/yyyy HH:mm")}
-          </Typography.Text>
-        );
-      },
-    },
-  ];
 
   const {
     data: products,

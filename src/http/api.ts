@@ -7,7 +7,7 @@ export const AUTH_SERVICE = "/api/auth";
 const CATALOG_SERVICE = "/api/catalog";
 
 export const login = (credentials: Credentials) =>
-  api.post(`${AUTH_SERVICE}/login`, credentials);
+  api.post(`${AUTH_SERVICE}/auth/login`, credentials);
 export const self = () => api.get(`${AUTH_SERVICE}/auth/self`);
 export const logout = () => api.post(`${AUTH_SERVICE}/auth/logout`);
 export const getUsers = (queryString: string) =>
