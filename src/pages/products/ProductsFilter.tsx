@@ -44,7 +44,7 @@ const ProductsFilter = ({ children }: ProductsFilterProps) => {
               </Form.Item>
             </Col>
             <Col span={6}>
-              <Form.Item name="category">
+              <Form.Item name="categoryId">
                 <Select
                   style={{ width: "100%" }}
                   allowClear={true}
@@ -61,7 +61,7 @@ const ProductsFilter = ({ children }: ProductsFilterProps) => {
               </Form.Item>
             </Col>
             <Col span={6}>
-              <Form.Item name="tenant">
+              <Form.Item name="tenantId">
                 <Select
                   style={{ width: "100%" }}
                   allowClear={true}

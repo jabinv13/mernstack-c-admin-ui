@@ -20,14 +20,13 @@ import { format } from "date-fns";
 import { Link } from "react-router-dom";
 import ProductsFilter from "./ProductsFilter";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { PER_PAGE } from "../../constants";
 import { getProducts } from "../../http/api";
-import { Product } from "../../types";
+import { FieldData, Product } from "../../types";
+import { debounce } from "lodash";
 
 const Products = () => {
-  const isFetching = false;
-  const isError = false;
   const [filterForm] = Form.useForm();
 
   const [queryParams, setQueryParams] = useState({
@@ -86,7 +85,12 @@ const Products = () => {
     },
   ];
 
-  const { data: products } = useQuery({
+  const {
+    data: products,
+    isFetching,
+    isError,
+    error,
+  } = useQuery({
     queryKey: ["products", queryParams],
     queryFn: () => {
       const filteredParams = Object.fromEntries(
@@ -101,7 +105,30 @@ const Products = () => {
     placeholderData: keepPreviousData,
   });
 
-  console.log(products);
+  const debouncedQUpdate = useMemo(() => {
+    return debounce((value: string | undefined) => {
+      setQueryParams((prev) => ({ ...prev, q: value, currentPage: 1 }));
+    }, 500);
+  }, []);
+
+  const onFilterChange = (changedFields: FieldData[]) => {
+    const changedFilterFields = changedFields
+      .map((item) => ({
+        [item.name[0]]: item.value,
+      }))
+      .reduce((acc, item) => ({ ...acc, ...item }), {});
+
+    //debounce
+    if ("q" in changedFilterFields) {
+      debouncedQUpdate(changedFilterFields.q);
+    } else {
+      setQueryParams((prev) => ({
+        ...prev,
+        ...changedFilterFields,
+        currentPage: 1,
+      }));
+    }
+  };
   return (
     <>
       <Space direction="vertical" size={"large"} style={{ width: "100%" }}>
@@ -119,9 +146,11 @@ const Products = () => {
               indicator={<LoadingOutlined style={{ fontSize: 24 }} spin />}
             />
           )}
-          {isError && <Typography.Text type="danger">error</Typography.Text>}
+          {isError && (
+            <Typography.Text type="danger">{error.message}</Typography.Text>
+          )}
         </Flex>
-        <Form form={filterForm} onFieldsChange={() => {}}>
+        <Form form={filterForm} onFieldsChange={onFilterChange}>
           <ProductsFilter>
             <Button type="primary" icon={<PlusOutlined />}>
               Add Product
