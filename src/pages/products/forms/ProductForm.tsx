@@ -3,27 +3,24 @@ import {
   Card,
   Col,
   Form,
+  FormInstance,
   Input,
   Row,
   Select,
   Space,
   Switch,
   Typography,
-  Upload,
-  UploadProps,
-  message,
 } from "antd";
 import { getCategories, getTenants } from "../../../http/api";
 import { Category, Tenant } from "../../../types";
-import { PlusOutlined } from "@ant-design/icons";
+
 import { useAuthStore } from "../../../store";
 import Pricing from "./Pricing";
 import Attributes from "./Attributes";
-import { useState } from "react";
 
-const ProductForm = () => {
-  const [messageApi, contextHolder] = message.useMessage();
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
+import ProductImage from "./ProductImage";
+
+const ProductForm = ({ form }: { form: FormInstance }) => {
   const selectedCategory = Form.useWatch("categoryId");
 
   const { user } = useAuthStore();
@@ -39,27 +36,6 @@ const ProductForm = () => {
       return getTenants(`perPage=100&currentPage=1`);
     },
   });
-
-  const uploadConfig: UploadProps = {
-    name: "file",
-    multiple: false,
-    showUploadList: false,
-
-    beforeUpload: (file) => {
-      // Validation logic
-      const isJpgOrPng =
-        file.type === "image/jpeg" || file.type === "image/png";
-      if (!isJpgOrPng) {
-        console.error("You can only upload JPG/PNG file!");
-        messageApi.error("You can only upload JPG/PNG file!");
-      }
-
-      //todo:  size validation.
-      setImageUrl(URL.createObjectURL(file));
-
-      return false;
-    },
-  };
 
   return (
     <Row>
@@ -133,32 +109,7 @@ const ProductForm = () => {
           <Card title="Product image" bordered={false}>
             <Row gutter={20}>
               <Col span={12}>
-                <Form.Item
-                  label=""
-                  name="image"
-                  rules={[
-                    {
-                      required: true,
-                      message: "Please upload a product image",
-                    },
-                  ]}
-                >
-                  <Upload listType="picture-card" {...uploadConfig}>
-                    {contextHolder}
-                    {imageUrl ? (
-                      <img
-                        src={imageUrl}
-                        alt="avatar"
-                        style={{ width: "100%" }}
-                      />
-                    ) : (
-                      <Space direction="vertical">
-                        <PlusOutlined />
-                        <Typography.Text>Upload</Typography.Text>
-                      </Space>
-                    )}
-                  </Upload>
-                </Form.Item>
+                <ProductImage initialImage={form.getFieldValue("image")} />
               </Col>
             </Row>
           </Card>
