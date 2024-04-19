@@ -22,11 +22,13 @@ type ProductsFilterProps = {
 const ProductsFilter = ({ children }: ProductsFilterProps) => {
   const { user } = useAuthStore();
   const { data: restaurants } = useQuery({
-    queryKey: ["restaurants"],
+    queryKey: ["tenants"],
     queryFn: () => {
       return getTenants(`perPage=100&currentPage=1`).then((res) => res.data);
     },
   });
+
+  console.log(restaurants);
 
   const { data: categories } = useQuery({
     queryKey: ["categories"],

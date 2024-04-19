@@ -1,6 +1,7 @@
 import {
   Breadcrumb,
   Button,
+  Drawer,
   Flex,
   Form,
   Image,
@@ -9,6 +10,7 @@ import {
   Table,
   Tag,
   Typography,
+  theme,
 } from "antd";
 import {
   RightOutlined,
@@ -26,6 +28,7 @@ import { getProducts } from "../../http/api";
 import { FieldData, Product } from "../../types";
 import { debounce } from "lodash";
 import { useAuthStore } from "../../store";
+import ProductForm from "./forms/ProductForm";
 
 const columns = [
   {
@@ -79,14 +82,20 @@ const columns = [
 ];
 
 const Products = () => {
+  const [form] = Form.useForm();
   const [filterForm] = Form.useForm();
   const { user } = useAuthStore();
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const [queryParams, setQueryParams] = useState({
     perPage: PER_PAGE,
     currentPage: 1,
     tenantId: user!.role === "manager" ? user?.tenant?.id : undefined,
   });
+
+  const {
+    token: { colorBgLayout },
+  } = theme.useToken();
 
   const {
     data: products,
@@ -132,6 +141,10 @@ const Products = () => {
       }));
     }
   };
+
+  const onHandleSubmit = () => {
+    console.log("submitting");
+  };
   return (
     <>
       <Space direction="vertical" size={"large"} style={{ width: "100%" }}>
@@ -155,7 +168,11 @@ const Products = () => {
         </Flex>
         <Form form={filterForm} onFieldsChange={onFilterChange}>
           <ProductsFilter>
-            <Button type="primary" icon={<PlusOutlined />}>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => setDrawerOpen(true)}
+            >
               Add Product
             </Button>
           </ProductsFilter>
@@ -196,6 +213,42 @@ const Products = () => {
             },
           }}
         />
+        <Drawer
+          title="Add Product"
+          styles={{ body: { backgroundColor: colorBgLayout } }}
+          open={drawerOpen}
+          width={720}
+          destroyOnClose={true}
+          onClose={() => {
+            form.resetFields();
+
+            setDrawerOpen(false);
+            console.log("Closing user drawer");
+          }}
+          extra={
+            <Space>
+              <Button
+                onClick={() => {
+                  form.resetFields();
+                  setDrawerOpen(false);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  onHandleSubmit();
+                }}
+              >
+                Submit
+              </Button>
+            </Space>
+          }
+        >
+          <Form layout="vertical">
+            <ProductForm />
+          </Form>
+        </Drawer>
       </Space>
     </>
   );
