@@ -21,14 +21,20 @@ import { format } from "date-fns";
 
 import { Link } from "react-router-dom";
 import ProductsFilter from "./ProductsFilter";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { PER_PAGE } from "../../constants";
-import { getProducts } from "../../http/api";
+import { createProduct, getProducts } from "../../http/api";
 import { FieldData, Product } from "../../types";
 import { debounce } from "lodash";
 import { useAuthStore } from "../../store";
 import ProductForm from "./forms/ProductForm";
+import { makeFormData } from "./helpers";
 
 const columns = [
   {
@@ -142,8 +148,97 @@ const Products = () => {
     }
   };
 
-  const onHandleSubmit = () => {
-    console.log("submitting");
+  const queryClient = useQueryClient();
+
+  const { mutate: productMutate } = useMutation({
+    mutationKey: ["product"],
+    mutationFn: async (data: FormData) =>
+      createProduct(data).then((res) => res.data),
+    onSuccess: async () => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      form.resetFields();
+      setDrawerOpen(false);
+      return;
+    },
+  });
+
+  const onHandleSubmit = async () => {
+    // const dummy = {
+    //   Size: {
+    //     priceType: "base",
+    //     availableOptions: { Small: 400, Medium: 600, Large: 800 },
+    //   },
+    //   Crust: {
+    //     priceType: "aditional",
+    //     availableOptions: { Thin: 50, Thick: 100 },
+    //   },
+    // };
+
+    // const cuurent = {
+    //   '{"configurationKey":"Size","priceType":"base"}': {
+    //     Small: 100,
+    //     Medium: 200,
+    //     Large: 300,
+    //   },
+    //   '{"configurationKey":"Crust","priceType":"aditional"}': {
+    //     Thin: 100,
+    //     Thick: 200,
+    //   },
+    // };
+
+    await form.validateFields();
+    const priceConfiguration = form.getFieldValue("priceConfiguration");
+    const pricing = Object.entries(priceConfiguration).reduce(
+      (acc, [key, value]) => {
+        const parsedKey = JSON.parse(key);
+        return {
+          ...acc,
+          [parsedKey.configurationKey]: {
+            priceType: parsedKey.priceType,
+            availableOptions: value,
+          },
+        };
+      },
+      {}
+    );
+
+    const categoryId = form.getFieldValue("categoryId");
+
+    // const currentAttrs = {
+    //     isHit: 'No',
+    //     Spiciness: 'Less',
+    // };
+
+    // const attrs = [
+    //     { name: 'Is Hit', value: true },
+    //     { name: 'Spiciness', value: 'Hot' },
+    // ];
+
+    const attributes = Object.entries(form.getFieldValue("attributes")).map(
+      ([key, value]) => {
+        return {
+          name: key,
+          value: value,
+        };
+      }
+    );
+
+    const postData = {
+      ...form.getFieldsValue(),
+      tenantId:
+        user!.role === "manager"
+          ? user?.tenant?.id
+          : form.getFieldValue("tenantId"),
+      isPublish: form.getFieldValue("isPublish") ? true : false,
+      image: form.getFieldValue("image"),
+      categoryId,
+      priceConfiguration: pricing,
+      attributes,
+    };
+
+    const formData = makeFormData(postData);
+
+    await productMutate(formData);
   };
   return (
     <>
@@ -245,7 +340,7 @@ const Products = () => {
             </Space>
           }
         >
-          <Form layout="vertical">
+          <Form layout="vertical" form={form}>
             <ProductForm />
           </Form>
         </Drawer>
