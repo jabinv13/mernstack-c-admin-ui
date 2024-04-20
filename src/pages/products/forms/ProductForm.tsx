@@ -70,6 +70,7 @@ const ProductForm = ({ form }: { form: FormInstance }) => {
                 >
                   <Select
                     size="large"
+                    onChange={() => {}}
                     style={{ width: "100%" }}
                     allowClear={true}
                     placeholder="Select Category"
