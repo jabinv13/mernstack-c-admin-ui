@@ -137,5 +137,11 @@ export interface Order {
   createdAt: string;
 }
 
+export enum OrderEvents {
+  ORDER_CREATE = "ORDER_CREATE",
+  PAYMENT_STATUS_UPDATE = "PAYMENT_STATUS_UPDATE",
+  ORDER_STATUS_UPDATE = "ORDER_STATUS_UPDATE",
+}
+
 export type ImageField = { file: File };
 export type CreateProductData = Product & { image: ImageField };

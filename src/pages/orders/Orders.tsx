@@ -1,10 +1,10 @@
-import { Breadcrumb, Flex, Space, Table, Tag, Typography } from "antd";
+import { Breadcrumb, Flex, Space, message, Table, Tag, Typography } from "antd";
 import { RightOutlined } from "@ant-design/icons";
 import React from "react";
 import { Link } from "react-router-dom";
-import { Order } from "../../types";
+import { Order, OrderEvents, PaymentMode, PaymentStatus } from "../../types";
 import { getOrders } from "../../http/api";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { colorMapping } from "../../constants";
 import { capitalizeFirst } from "../products/helpers";
@@ -105,6 +105,8 @@ const TENANT_ID = 9;
 
 const Orders = () => {
   const { user } = useAuthStore();
+  const queryClient = useQueryClient();
+  const [messageApi, contextHolder] = message.useMessage();
 
   React.useEffect(() => {
     //from server
@@ -112,7 +114,25 @@ const Orders = () => {
     //to server
     if (user?.tenant) {
       socket.on("order-update", (data) => {
-        console.log("Data recieved ", data);
+        // todo: data.event_type =
+        if (
+          (data.event_type === OrderEvents.ORDER_CREATE &&
+            data.data.paymentMode === PaymentMode.CASH) ||
+          (data.event_type === OrderEvents.PAYMENT_STATUS_UPDATE &&
+            data.data.paymentStatus === PaymentStatus.PAID &&
+            data.data.paymentMode === PaymentMode.CARD)
+        ) {
+          queryClient.setQueryData(["orders"], (old: Order[]) => [
+            data.data,
+            ...old,
+          ]);
+          messageApi.open({
+            type: "success",
+            content: "New Order Received.",
+          });
+        }
+
+        console.log("data received: ", data.data);
       });
       socket.on("join", (data) => {
         console.log("User joined in ", data.roomId);
@@ -139,18 +159,21 @@ const Orders = () => {
     },
   });
   return (
-    <Space direction="vertical" size="large" style={{ width: "100%" }}>
-      <Flex justify="space-between">
-        <Breadcrumb
-          separator={<RightOutlined />}
-          items={[
-            { title: <Link to="/">Dashboard</Link> },
-            { title: "orders" },
-          ]}
-        />
-      </Flex>
-      <Table columns={columns} rowKey={"_id"} dataSource={orders} />
-    </Space>
+    <>
+      {contextHolder}
+      <Space direction="vertical" size="large" style={{ width: "100%" }}>
+        <Flex justify="space-between">
+          <Breadcrumb
+            separator={<RightOutlined />}
+            items={[
+              { title: <Link to="/">Dashboard</Link> },
+              { title: "orders" },
+            ]}
+          />
+        </Flex>
+        <Table columns={columns} rowKey={"_id"} dataSource={orders} />
+      </Space>
+    </>
   );
 };
 
